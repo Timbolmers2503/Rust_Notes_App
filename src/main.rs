@@ -1,10 +1,9 @@
-use eframe::egui;
+use eframe::{egui, wgpu::naga::ScalarKind::Bool};
 use std::time::SystemTime;
 
 fn main() -> eframe::Result<()> {
     let icon = eframe::icon_data::from_png_bytes(include_bytes!("icon.png"))
         .expect("icon.png is geen geldige PNG");
-
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([800.0, 600.0])
@@ -45,6 +44,8 @@ struct MijnApp {
 struct Notitie {
     text: String,
     time: SystemTime,
+    uploaded: bool,
+    draft: String,
 }
 
 impl Default for Notitie {
@@ -52,13 +53,15 @@ impl Default for Notitie {
         Self {
             text: String::new(),
             time: SystemTime::now(),
+            uploaded: false,
+            draft: String::new(),
         }
     }
 }
 
 impl Notitie {
-    fn bijwerken(&mut self, nu: SystemTime) {
-        self.time = nu;
+    fn bijwerken(&mut self) {
+        self.time = SystemTime::now();
     }
     fn text_update(&mut self, t: String) {
         self.text = t;
@@ -72,14 +75,15 @@ impl eframe::App for MijnApp {
             ui.label("Gemaakt door Tim Bolmers");
             ui.separator();
             if ui.button("Pas tijd aan").clicked() {
-                self.notitie.bijwerken(SystemTime::now());
+                self.notitie.bijwerken();
             }
             let tijd: chrono::DateTime<chrono::Local> = self.notitie.time.into();
             ui.label(format!("Laatst gewijzigd: {}", tijd.format("%H:%M:%S")));
-            ui.text_edit_singleline(&mut self.notitie.text);
+            ui.text_edit_singleline(&mut self.notitie.draft);
             if ui.button("Upload...").clicked() {
-                let kopie = self.notitie.text.clone();
-                self.notitie.text_update(kopie);
+                self.notitie.text_update(self.notitie.draft.clone());
+                self.notitie.uploaded = true;
+                self.notitie.bijwerken(); 
             }
             ui.label(format!("Geschreven Tekst: {}", self.notitie.text));
             
